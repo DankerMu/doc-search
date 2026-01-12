@@ -12,6 +12,7 @@ from .routers.documents import router as documents_router
 from .routers.folders import router as folders_router
 from .routers.health import router as health_router
 from .routers.search import router as search_router
+from .routers.tags import router as tags_router
 
 
 @asynccontextmanager
@@ -35,3 +36,4 @@ app.include_router(health_router)
 app.include_router(documents_router)
 app.include_router(folders_router)
 app.include_router(search_router)
+app.include_router(tags_router)

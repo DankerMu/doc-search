@@ -115,3 +115,43 @@ async def delete_document(document_id: int, db: AsyncSession = Depends(get_db)):
     if not success:
         raise HTTPException(404, "Document not found")
     return {"message": "Document deleted"}
+
+
+class DocumentTagRequest(BaseModel):
+    tag_id: int
+
+
+@router.post("/{document_id}/tags")
+async def add_tag_to_document(
+    document_id: int,
+    data: DocumentTagRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    from app.services.tag_service import TagService
+
+    service = TagService(db)
+    try:
+        added = await service.add_tag_to_document(document_id, data.tag_id)
+        if added:
+            return {"message": "Tag added to document"}
+        return {"message": "Document already has this tag"}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.delete("/{document_id}/tags/{tag_id}")
+async def remove_tag_from_document(
+    document_id: int,
+    tag_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    from app.services.tag_service import TagService
+
+    service = TagService(db)
+    try:
+        removed = await service.remove_tag_from_document(document_id, tag_id)
+        if removed:
+            return {"message": "Tag removed from document"}
+        raise HTTPException(404, "Tag not associated with document")
+    except ValueError as e:
+        raise HTTPException(400, str(e))
