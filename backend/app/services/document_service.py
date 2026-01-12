@@ -77,6 +77,42 @@ class DocumentService:
     async def get_document(self, document_id: int) -> Optional[Document]:
         return await self.db.get(Document, document_id)
 
+    async def move_document(
+        self, document_id: int, folder_id: Optional[int]
+    ) -> Optional[Document]:
+        doc = await self.get_document(document_id)
+        if not doc:
+            return None
+
+        # Validate folder exists if specified
+        if folder_id:
+            from app.services.folder_service import FolderService
+
+            folder_service = FolderService(self.db)
+            folder = await folder_service.get_folder(folder_id)
+            if not folder:
+                raise ValueError("Target folder not found")
+
+        doc.folder_id = folder_id
+        await self.db.commit()
+        await self.db.refresh(doc)
+
+        if get_search_service is not None:
+            try:
+                search_service = get_search_service()
+                search_service.index_document(
+                    doc_id=doc.id,
+                    content=doc.content_text or "",
+                    file_type=doc.file_type,
+                    folder_id=doc.folder_id,
+                    tag_ids=[],  # Tags not implemented yet
+                    created_at=doc.created_at,
+                )
+            except Exception:
+                pass
+
+        return doc
+
     async def list_documents(
         self, folder_id: Optional[int], skip: int, limit: int
     ) -> tuple[list[Document], int]:

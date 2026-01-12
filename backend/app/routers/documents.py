@@ -31,6 +31,10 @@ class DocumentListResponse(BaseModel):
     total: int
 
 
+class MoveDocumentRequest(BaseModel):
+    folder_id: Optional[int] = None
+
+
 @router.post("/upload", response_model=DocumentResponse)
 async def upload_document(
     file: UploadFile = File(...),
@@ -86,6 +90,22 @@ async def get_document(document_id: int, db: AsyncSession = Depends(get_db)):
     if not doc:
         raise HTTPException(404, "Document not found")
     return doc
+
+
+@router.post("/{document_id}/move", response_model=DocumentResponse)
+async def move_document(
+    document_id: int,
+    data: MoveDocumentRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    service = DocumentService(db)
+    try:
+        doc = await service.move_document(document_id, data.folder_id)
+        if not doc:
+            raise HTTPException(404, "Document not found")
+        return doc
+    except ValueError as e:
+        raise HTTPException(400, str(e))
 
 
 @router.delete("/{document_id}")
