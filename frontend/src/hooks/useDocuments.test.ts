@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { getApiClient } from '../services/api';
-import { uploadDocument } from './useDocuments';
+import { getApiBaseUrl, getApiClient } from '../services/api';
+import { getDocumentDownloadUrl, uploadDocument } from './useDocuments';
 
 vi.mock('../services/api', () => ({
   request: vi.fn(),
-  getApiClient: vi.fn()
+  getApiClient: vi.fn(),
+  getApiBaseUrl: vi.fn(() => '/api')
 }));
 
 describe('hooks/useDocuments', () => {
@@ -52,5 +53,14 @@ describe('hooks/useDocuments', () => {
     expect(onProgress).not.toHaveBeenCalled();
     expect(apiRequestMock).toHaveBeenCalledWith(expect.objectContaining({ params: { folder_id: 2 } }));
   });
-});
 
+  it('getDocumentDownloadUrl uses configured API base URL', () => {
+    vi.mocked(getApiBaseUrl).mockReturnValue('https://example.test/api');
+    expect(getDocumentDownloadUrl(123)).toBe('https://example.test/api/documents/123/file');
+  });
+
+  it('getDocumentDownloadUrl normalizes trailing slashes in API base URL', () => {
+    vi.mocked(getApiBaseUrl).mockReturnValue('https://example.test/api/');
+    expect(getDocumentDownloadUrl(123)).toBe('https://example.test/api/documents/123/file');
+  });
+});

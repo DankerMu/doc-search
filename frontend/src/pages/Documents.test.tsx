@@ -8,7 +8,8 @@ import { request } from '../services/api';
 
 vi.mock('../services/api', () => ({
   request: vi.fn(),
-  getApiClient: () => ({ request: vi.fn() })
+  getApiClient: () => ({ request: vi.fn() }),
+  getApiBaseUrl: () => '/api'
 }));
 
 describe('pages/Documents', () => {

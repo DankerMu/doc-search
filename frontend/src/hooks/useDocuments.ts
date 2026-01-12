@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { getApiClient, request } from '../services/api';
+import { getApiBaseUrl, getApiClient, request } from '../services/api';
 import type { Document, DocumentDetail, DocumentListResponse } from '../types/document';
 
 export type UseDocumentsParams = {
@@ -72,6 +72,6 @@ export function useUploadDocument() {
 }
 
 export function getDocumentDownloadUrl(documentId: number): string {
-  return `/api/documents/${documentId}/file`;
+  const apiBaseUrl = getApiBaseUrl().replace(/\/+$/, '');
+  return `${apiBaseUrl}/documents/${documentId}/file`;
 }
-

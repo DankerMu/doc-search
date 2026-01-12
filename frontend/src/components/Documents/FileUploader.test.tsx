@@ -8,7 +8,8 @@ import { getApiClient } from '../../services/api';
 
 vi.mock('../../services/api', () => ({
   request: vi.fn(),
-  getApiClient: vi.fn()
+  getApiClient: vi.fn(),
+  getApiBaseUrl: () => '/api'
 }));
 
 describe('FileUploader', () => {
