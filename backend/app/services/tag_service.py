@@ -207,6 +207,8 @@ class TagService:
         added = 0
         skipped = 0
 
+        tag_ids = list(set(tag_ids))
+
         # Validate all tags exist
         for tag_id in tag_ids:
             tag = await self.get_tag(tag_id)

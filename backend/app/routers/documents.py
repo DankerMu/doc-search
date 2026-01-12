@@ -136,7 +136,9 @@ async def add_tag_to_document(
             return {"message": "Tag added to document"}
         return {"message": "Document already has this tag"}
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        detail = str(e)
+        status_code = 404 if "not found" in detail.lower() else 400
+        raise HTTPException(status_code, detail)
 
 
 @router.delete("/{document_id}/tags/{tag_id}")
@@ -154,4 +156,6 @@ async def remove_tag_from_document(
             return {"message": "Tag removed from document"}
         raise HTTPException(404, "Tag not associated with document")
     except ValueError as e:
-        raise HTTPException(400, str(e))
+        detail = str(e)
+        status_code = 404 if "not found" in detail.lower() else 400
+        raise HTTPException(status_code, detail)

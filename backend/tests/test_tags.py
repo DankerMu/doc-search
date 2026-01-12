@@ -372,6 +372,125 @@ async def test_batch_add_tags(test_db):
 
 
 @pytest.mark.asyncio
+async def test_batch_add_tags_deduplicates_tag_ids(test_db):
+    async with test_db() as session:
+        service = TagService(session)
+        tag = await service.create_tag("BatchDup")
+
+        doc = Document(
+            filename="batchdup.pdf",
+            original_name="batchdup.pdf",
+            file_type="pdf",
+            file_size=100,
+        )
+        session.add(doc)
+        await session.commit()
+        await session.refresh(doc)
+
+        result = await service.batch_add_tags([doc.id], [tag.id, tag.id])
+        assert result["added"] == 1
+        assert result["skipped"] == 0
+
+        linked = await session.execute(
+            select(document_tags).where(
+                document_tags.c.document_id == doc.id,
+                document_tags.c.tag_id == tag.id,
+            )
+        )
+        assert len(linked.all()) == 1
+
+
+@pytest.mark.asyncio
+async def test_batch_add_tags_skips_missing_documents(test_db):
+    async with test_db() as session:
+        service = TagService(session)
+        tag = await service.create_tag("BatchSkipMissingDoc")
+
+        result = await service.batch_add_tags([99999], [tag.id])
+        assert result["added"] == 0
+        assert result["skipped"] == 0
+
+
+@pytest.mark.asyncio
+async def test_batch_remove_tags_skips_missing_documents(test_db):
+    async with test_db() as session:
+        service = TagService(session)
+
+        result = await service.batch_remove_tags([99999], [1])
+        assert result["removed"] == 0
+
+
+@pytest.mark.asyncio
+async def test_batch_add_tags_ignores_reindex_errors(test_db, monkeypatch):
+    import app.services.tag_service as tag_service_module
+
+    class _FailingSearchService:
+        def index_document(self, **_kwargs):
+            raise RuntimeError("boom")
+
+    monkeypatch.setattr(
+        tag_service_module,
+        "get_search_service",
+        lambda: _FailingSearchService(),
+    )
+
+    async with test_db() as session:
+        service = TagService(session)
+        tag = await service.create_tag("BatchReindexError")
+
+        doc = Document(
+            filename="batchreindexerror.pdf",
+            original_name="batchreindexerror.pdf",
+            file_type="pdf",
+            file_size=100,
+        )
+        session.add(doc)
+        await session.commit()
+        await session.refresh(doc)
+
+        result = await service.batch_add_tags([doc.id], [tag.id])
+        assert result["added"] == 1
+        assert result["skipped"] == 0
+
+
+@pytest.mark.asyncio
+async def test_batch_remove_tags_ignores_reindex_errors(test_db, monkeypatch):
+    import app.services.tag_service as tag_service_module
+
+    class _FailingSearchService:
+        def index_document(self, **_kwargs):
+            raise RuntimeError("boom")
+
+    monkeypatch.setattr(
+        tag_service_module,
+        "get_search_service",
+        lambda: _FailingSearchService(),
+    )
+
+    async with test_db() as session:
+        service = TagService(session)
+        tag = await service.create_tag("BatchRemReindexError")
+
+        doc = Document(
+            filename="batchremreindexerror.pdf",
+            original_name="batchremreindexerror.pdf",
+            file_type="pdf",
+            file_size=100,
+        )
+        session.add(doc)
+        await session.commit()
+        await session.refresh(doc)
+
+        await session.execute(
+            insert(document_tags).values(document_id=doc.id, tag_id=tag.id)
+        )
+        await session.commit()
+
+        result = await service.batch_remove_tags([doc.id], [tag.id])
+        assert result["removed"] == 1
+
+
+@pytest.mark.asyncio
 async def test_batch_add_tags_with_existing(test_db):
     async with test_db() as session:
         service = TagService(session)
@@ -622,6 +741,27 @@ async def test_batch_add_tags_api(test_db):
 
 
 @pytest.mark.asyncio
+async def test_batch_add_tags_api_deduplicates_tag_ids(test_db):
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        tag_resp = await client.post("/api/tags", json={"name": "BatchAddDedupAPI"})
+        tag_id = tag_resp.json()["id"]
+
+        files = {"file": ("test.md", b"# Test", "text/markdown")}
+        doc_resp = await client.post("/api/documents/upload", files=files)
+        doc_id = doc_resp.json()["id"]
+
+        response = await client.post(
+            "/api/tags/batch-add",
+            json={"document_ids": [doc_id], "tag_ids": [tag_id, tag_id]},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["added"] == 1
+        assert data["skipped"] == 0
+
+
+@pytest.mark.asyncio
 async def test_batch_add_tags_api_invalid_tag(test_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -719,7 +859,7 @@ async def test_add_tag_to_document_api_invalid_doc(test_db):
             "/api/documents/99999/tags",
             json={"tag_id": tag_id},
         )
-        assert response.status_code == 400
+        assert response.status_code == 404
 
 
 @pytest.mark.asyncio
@@ -735,7 +875,7 @@ async def test_add_tag_to_document_api_invalid_tag(test_db):
             f"/api/documents/{doc_id}/tags",
             json={"tag_id": 99999},
         )
-        assert response.status_code == 400
+        assert response.status_code == 404
 
 
 @pytest.mark.asyncio
@@ -785,4 +925,4 @@ async def test_remove_tag_from_document_api_invalid_doc(test_db):
         tag_id = tag_resp.json()["id"]
 
         response = await client.delete(f"/api/documents/99999/tags/{tag_id}")
-        assert response.status_code == 400
+        assert response.status_code == 404
