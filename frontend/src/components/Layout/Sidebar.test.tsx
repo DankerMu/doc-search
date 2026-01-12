@@ -33,6 +33,11 @@ describe('Sidebar', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/other');
     await user.click(screen.getByRole('menuitem', { name: '首页' }));
     expect(screen.getByTestId('location')).toHaveTextContent('/');
+
+    await user.click(screen.getByRole('menuitem', { name: '搜索' }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/search');
+
+    await user.click(screen.getByRole('menuitem', { name: '文档' }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/documents');
   });
 });
-

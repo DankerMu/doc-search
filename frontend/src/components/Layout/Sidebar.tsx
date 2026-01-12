@@ -4,8 +4,12 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 import { ROUTES } from '../../types/routes';
 
-const menuKeys = [ROUTES.home];
-const items: MenuProps['items'] = [{ key: ROUTES.home, label: '首页' }];
+const menuKeys = [ROUTES.home, ROUTES.search, ROUTES.documents];
+const items: MenuProps['items'] = [
+  { key: ROUTES.home, label: '首页' },
+  { key: ROUTES.search, label: '搜索' },
+  { key: ROUTES.documents, label: '文档' }
+];
 
 export default function Sidebar() {
   const navigate = useNavigate();

@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.services.document_service import DocumentService
 from app.services.parser import DocumentParser, MAX_FILE_SIZE, SUPPORTED_TYPES
@@ -26,6 +29,10 @@ class DocumentResponse(BaseModel):
     created_at: datetime
 
 
+class DocumentDetailResponse(DocumentResponse):
+    content_text: Optional[str] = None
+
+
 class DocumentListResponse(BaseModel):
     items: List[DocumentResponse]
     total: int
@@ -35,7 +42,7 @@ class MoveDocumentRequest(BaseModel):
     folder_id: Optional[int] = None
 
 
-@router.post("/upload", response_model=DocumentResponse)
+@router.post("", response_model=DocumentResponse)
 async def upload_document(
     file: UploadFile = File(...),
     folder_id: Optional[int] = None,
@@ -71,6 +78,15 @@ async def upload_document(
     return document
 
 
+@router.post("/upload", response_model=DocumentResponse, include_in_schema=False)
+async def upload_document_legacy(
+    file: UploadFile = File(...),
+    folder_id: Optional[int] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    return await upload_document(file=file, folder_id=folder_id, db=db)
+
+
 @router.get("", response_model=DocumentListResponse)
 async def list_documents(
     folder_id: Optional[int] = None,
@@ -83,13 +99,31 @@ async def list_documents(
     return DocumentListResponse(items=items, total=total)
 
 
-@router.get("/{document_id}", response_model=DocumentResponse)
+@router.get("/{document_id}", response_model=DocumentDetailResponse)
 async def get_document(document_id: int, db: AsyncSession = Depends(get_db)):
     service = DocumentService(db)
     doc = await service.get_document(document_id)
     if not doc:
         raise HTTPException(404, "Document not found")
     return doc
+
+
+@router.get("/{document_id}/file")
+async def download_document_file(document_id: int, db: AsyncSession = Depends(get_db)):
+    service = DocumentService(db)
+    doc = await service.get_document(document_id)
+    if not doc:
+        raise HTTPException(404, "Document not found")
+
+    file_path = Path(settings.UPLOAD_DIR) / doc.filename
+    if not file_path.exists():
+        raise HTTPException(404, "File not found")
+
+    return FileResponse(
+        path=str(file_path),
+        filename=doc.original_name,
+        media_type="application/octet-stream",
+    )
 
 
 @router.post("/{document_id}/move", response_model=DocumentResponse)
