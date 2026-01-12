@@ -44,11 +44,23 @@ async def upload_document(
     if not DocumentParser.is_supported(file_type):
         raise HTTPException(400, f"Unsupported file type. Allowed: {SUPPORTED_TYPES}")
 
-    content = await file.read()
-    if len(content) > MAX_FILE_SIZE:
-        raise HTTPException(
-            400, f"File too large. Max size: {MAX_FILE_SIZE // 1024 // 1024}MB"
-        )
+    # Stream read with early size check to prevent DoS
+    chunks = []
+    total_size = 0
+    chunk_size = 1024 * 1024  # 1MB chunks
+
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        total_size += len(chunk)
+        if total_size > MAX_FILE_SIZE:
+            raise HTTPException(
+                400, f"File too large. Max size: {MAX_FILE_SIZE // 1024 // 1024}MB"
+            )
+        chunks.append(chunk)
+
+    content = b"".join(chunks)
 
     service = DocumentService(db)
     document = await service.save_document(file.filename, content, file_type, folder_id)
