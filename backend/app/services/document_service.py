@@ -8,6 +8,14 @@ from typing import Optional
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+try:
+    from app.services.search_service import get_search_service
+except ModuleNotFoundError as exc:  # pragma: no cover
+    if exc.name and (exc.name == "jieba" or exc.name.startswith("whoosh")):
+        get_search_service = None  # type: ignore[assignment]
+    else:
+        raise
+
 from ..core.config import settings
 from ..models import Document
 from .parser import DocumentParser
@@ -49,6 +57,21 @@ class DocumentService:
         self.db.add(document)
         await self.db.commit()
         await self.db.refresh(document)
+
+        # After saving document to DB, index it
+        if get_search_service is not None:
+            try:
+                search_service = get_search_service()
+                search_service.index_document(
+                    doc_id=document.id,
+                    content=document.content_text or "",
+                    file_type=document.file_type,
+                    folder_id=document.folder_id,
+                    tag_ids=[],  # Tags not implemented yet
+                    created_at=document.created_at,
+                )
+            except Exception:
+                pass
         return document
 
     async def get_document(self, document_id: int) -> Optional[Document]:
@@ -80,6 +103,15 @@ class DocumentService:
             return False
 
         file_path = Path(settings.UPLOAD_DIR) / document.filename
+
+        # Before or after deleting from DB
+        if get_search_service is not None:
+            try:
+                search_service = get_search_service()
+                search_service.remove_document(document_id)
+            except Exception:
+                pass
+
         await self.db.delete(document)
         await self.db.commit()
 
