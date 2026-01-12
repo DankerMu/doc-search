@@ -172,6 +172,79 @@ async def test_delete_document_not_found(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_move_document_endpoint_moves_document_between_folders(
+    client: AsyncClient,
+    test_db,
+    upload_dir: Path,
+    inline_to_thread,
+):
+    upload = await client.post(
+        "/api/documents/upload",
+        files={"file": ("move.md", b"Move me", "text/markdown")},
+    )
+    assert upload.status_code == 200
+    doc_id = upload.json()["id"]
+
+    async with test_db() as session:
+        folder = Folder(name="Target folder")
+        session.add(folder)
+        await session.commit()
+        await session.refresh(folder)
+        folder_id = folder.id
+
+    response = await client.post(
+        f"/api/documents/{doc_id}/move",
+        json={"folder_id": folder_id},
+    )
+    assert response.status_code == 200
+    assert response.json()["id"] == doc_id
+    assert response.json()["folder_id"] == folder_id
+
+    response = await client.post(
+        f"/api/documents/{doc_id}/move",
+        json={"folder_id": None},
+    )
+    assert response.status_code == 200
+    assert response.json()["folder_id"] is None
+
+    async with test_db() as session:
+        doc = await session.get(Document, doc_id)
+        assert doc is not None
+        assert doc.folder_id is None
+
+
+@pytest.mark.asyncio
+async def test_move_document_endpoint_invalid_folder_returns_400(
+    client: AsyncClient,
+    upload_dir: Path,
+    inline_to_thread,
+):
+    upload = await client.post(
+        "/api/documents/upload",
+        files={"file": ("move-bad.md", b"Move me", "text/markdown")},
+    )
+    assert upload.status_code == 200
+    doc_id = upload.json()["id"]
+
+    response = await client.post(
+        f"/api/documents/{doc_id}/move",
+        json={"folder_id": 999999},
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Target folder not found"
+
+
+@pytest.mark.asyncio
+async def test_move_document_endpoint_document_not_found_returns_404(client: AsyncClient):
+    response = await client.post(
+        "/api/documents/999999/move",
+        json={"folder_id": None},
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Document not found"
+
+
+@pytest.mark.asyncio
 async def test_document_service_list_documents_filters_folder(test_db):
     async with test_db() as session:
         folder = Folder(name="Filter folder")
