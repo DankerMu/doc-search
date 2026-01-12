@@ -18,7 +18,8 @@ describe('MainLayout', () => {
 
     expect(screen.getByRole('heading', { name: 'Doc Search' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: '首页' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: '搜索' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: '文档' })).toBeInTheDocument();
     expect(screen.getByText('Outlet Content')).toBeInTheDocument();
   });
 });
-
