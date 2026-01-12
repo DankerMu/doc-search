@@ -41,7 +41,7 @@ describe('DocumentPreview', () => {
     expect(download).toHaveAttribute('href', '/api/documents/1/file');
   });
 
-  it('shows empty state when content is empty', async () => {
+  it('shows empty state when content is empty (even with query)', async () => {
     const requestMock = vi.mocked(request);
     requestMock.mockResolvedValue({
       id: 2,
@@ -58,7 +58,7 @@ describe('DocumentPreview', () => {
 
     render(
       <QueryClientProvider client={client}>
-        <DocumentPreview open documentId={2} query="" onClose={() => undefined} />
+        <DocumentPreview open documentId={2} query="hello" onClose={() => undefined} />
       </QueryClientProvider>,
     );
 

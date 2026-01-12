@@ -10,8 +10,8 @@ describe('types/search', () => {
         type: 'md',
         folder_id: 1,
         tag_ids: [1, 2],
-        date_from: '2026-01-01T00:00:00.000Z',
-        date_to: '2026-01-31T23:59:59.999Z',
+        date_from: '2026-01-01',
+        date_to: '2026-01-31',
         skip: 0,
         limit: 20
       }),
@@ -20,8 +20,8 @@ describe('types/search', () => {
       type: 'md',
       folder_id: 1,
       tag_ids: '1,2',
-      date_from: '2026-01-01T00:00:00.000Z',
-      date_to: '2026-01-31T23:59:59.999Z',
+      date_from: '2026-01-01',
+      date_to: '2026-01-31',
       skip: 0,
       limit: 20
     });
@@ -39,4 +39,3 @@ describe('types/search', () => {
     ).toEqual({ q: 'x' });
   });
 });
-

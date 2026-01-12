@@ -43,6 +43,8 @@ function highlightText(text: string, query: string) {
 export default function DocumentPreview(props: DocumentPreviewProps) {
   const detailQuery = useDocumentDetail(props.documentId, props.open);
   const document = detailQuery.data;
+  const contentText = document?.content_text ?? '';
+  const hasContentText = contentText.trim().length > 0;
 
   return (
     <Drawer
@@ -76,7 +78,9 @@ export default function DocumentPreview(props: DocumentPreviewProps) {
           </Descriptions>
           <Typography.Paragraph style={{ marginBottom: 0 }}>全文</Typography.Paragraph>
           <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-            {highlightText(document.content_text ?? '', props.query) || (
+            {hasContentText ? (
+              highlightText(contentText, props.query)
+            ) : (
               <Typography.Text type="secondary">暂无内容</Typography.Text>
             )}
           </div>
@@ -87,4 +91,3 @@ export default function DocumentPreview(props: DocumentPreviewProps) {
     </Drawer>
   );
 }
-

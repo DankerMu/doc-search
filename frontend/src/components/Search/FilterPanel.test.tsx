@@ -66,12 +66,12 @@ describe('FilterPanel', () => {
 
     fireEvent.change(screen.getByLabelText('filter-date-from'), { target: { value: '2026-01-01' } });
     expect(onChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({ date_from: '2026-01-01T00:00:00.000Z' }),
+      expect.objectContaining({ date_from: '2026-01-01' }),
     );
 
     fireEvent.change(screen.getByLabelText('filter-date-to'), { target: { value: '2026-01-31' } });
     expect(onChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({ date_to: '2026-01-31T23:59:59.999Z' }),
+      expect.objectContaining({ date_to: '2026-01-31' }),
     );
 
     fireEvent.change(screen.getByLabelText('filter-date-from'), { target: { value: '' } });

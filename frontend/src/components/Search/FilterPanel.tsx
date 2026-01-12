@@ -76,9 +76,7 @@ export default function FilterPanel(props: FilterPanelProps) {
               onChange={(e) =>
                 props.onChange({
                   ...props.value,
-                  date_from: e.target.value
-                    ? new Date(`${e.target.value}T00:00:00.000Z`).toISOString()
-                    : null
+                  date_from: e.target.value || null
                 })
               }
             />
@@ -89,9 +87,7 @@ export default function FilterPanel(props: FilterPanelProps) {
               onChange={(e) =>
                 props.onChange({
                   ...props.value,
-                  date_to: e.target.value
-                    ? new Date(`${e.target.value}T23:59:59.999Z`).toISOString()
-                    : null
+                  date_to: e.target.value || null
                 })
               }
             />
