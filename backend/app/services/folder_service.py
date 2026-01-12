@@ -6,6 +6,14 @@ from sqlalchemy.orm import selectinload
 
 from app.models import Document, Folder
 
+try:
+    from app.services.search_service import get_search_service
+except ModuleNotFoundError as exc:  # pragma: no cover
+    if exc.name and (exc.name == "jieba" or exc.name.startswith("whoosh")):
+        get_search_service = None  # type: ignore[assignment]
+    else:
+        raise
+
 MAX_FOLDER_DEPTH = 5
 
 
@@ -14,8 +22,11 @@ class FolderService:
         self.db = db
 
     async def create_folder(self, name: str, parent_id: Optional[int] = None) -> Folder:
-        # Validate depth
+        # Validate parent exists
         if parent_id:
+            parent = await self.get_folder(parent_id)
+            if not parent:
+                raise ValueError("Parent folder not found")
             depth = await self._get_depth(parent_id)
             if depth >= MAX_FOLDER_DEPTH:
                 raise ValueError(f"Maximum folder depth ({MAX_FOLDER_DEPTH}) exceeded")
@@ -44,6 +55,12 @@ class FolderService:
         if not folder:
             return False
 
+        # Get documents that will be moved to root
+        doc_result = await self.db.execute(
+            select(Document).where(Document.folder_id == folder_id)
+        )
+        affected_docs = list(doc_result.scalars().all())
+
         # Move documents to root (folder_id = None)
         await self.db.execute(
             Document.__table__.update()
@@ -60,6 +77,23 @@ class FolderService:
 
         await self.db.delete(folder)
         await self.db.commit()
+
+        # Reindex affected documents with updated folder_id
+        if get_search_service is not None and affected_docs:
+            try:
+                search_service = get_search_service()
+                for doc in affected_docs:
+                    search_service.index_document(
+                        doc_id=doc.id,
+                        content=doc.content_text or "",
+                        file_type=doc.file_type,
+                        folder_id=None,  # Now moved to root
+                        tag_ids=[],
+                        created_at=doc.created_at,
+                    )
+            except Exception:
+                pass
+
         return True
 
     async def get_folder_tree(self) -> List[dict]:

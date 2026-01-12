@@ -92,6 +92,15 @@ async def test_max_depth_exceeded(test_db):
 
 
 @pytest.mark.asyncio
+async def test_create_folder_parent_not_found(test_db):
+    async with test_db() as session:
+        service = FolderService(session)
+
+        with pytest.raises(ValueError, match=r"Parent folder not found"):
+            await service.create_folder("Orphan", parent_id=99999)
+
+
+@pytest.mark.asyncio
 async def test_get_folder(test_db):
     async with test_db() as session:
         service = FolderService(session)
