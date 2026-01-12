@@ -8,6 +8,7 @@ try:
     from whoosh.analysis import Token, Tokenizer
     from whoosh.fields import DATETIME, ID, KEYWORD, TEXT, Schema
     from whoosh.qparser import MultifieldParser, QueryParser
+    from whoosh.query import And, Term, DateRange
     from whoosh.scoring import BM25F
 except ImportError:  # pragma: no cover
     jieba = None
@@ -144,26 +145,22 @@ class SearchService:
             parser = MultifieldParser(["content"], self.ix.schema)
             q = parser.parse(query)
 
-            # Apply filters
-            filter_queries = []
+            # Build filter query for Whoosh to apply during search
+            filter_parts = []
             if file_type:
-                filter_queries.append(
-                    QueryParser("file_type", self.ix.schema).parse(file_type)
-                )
+                filter_parts.append(Term("file_type", file_type))
             if folder_id:
-                filter_queries.append(
-                    QueryParser("folder_id", self.ix.schema).parse(str(folder_id))
-                )
+                filter_parts.append(Term("folder_id", str(folder_id)))
 
-            results = searcher.search(q, limit=skip + limit + 100)
+            filter_q = And(filter_parts) if filter_parts else None
 
-            # Post-filter and paginate
+            # Search with filter applied inside Whoosh (no artificial limit)
+            # Use limit=None to get all results for accurate total
+            results = searcher.search(q, filter=filter_q, limit=None)
+
+            # Post-filter for tag_ids and date range (not easily done in Whoosh filter)
             filtered = []
             for hit in results:
-                if file_type and hit.get("file_type") != file_type:
-                    continue
-                if folder_id and hit.get("folder_id") != str(folder_id):
-                    continue
                 if tag_ids:
                     hit_tags = set(hit.get("tag_ids", "").split(","))
                     if not any(str(t) in hit_tags for t in tag_ids):
