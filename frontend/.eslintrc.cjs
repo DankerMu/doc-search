@@ -14,6 +14,17 @@ module.exports = {
   parser: '@typescript-eslint/parser',
   plugins: ['react', '@typescript-eslint'],
   settings: { react: { version: 'detect' } },
+  overrides: [
+    {
+      files: ['**/*.test.{ts,tsx}', 'src/setupTests.ts'],
+      rules: {
+        '@typescript-eslint/no-explicit-any': 'off',
+        'testing-library/no-node-access': 'off',
+        'testing-library/no-container': 'off',
+        'testing-library/no-manual-cleanup': 'off'
+      }
+    }
+  ],
   rules: {
     'react/react-in-jsx-scope': 'off'
   }
