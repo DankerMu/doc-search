@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  backend:
+    image: python:3.11-slim
+    working_dir: /app/backend
+    volumes:
+      - ./backend:/app/backend
+      - backend-uploads:/app/backend/uploads
+      - backend-index:/app/backend/search_index
+    environment:
+      PYTHONUNBUFFERED: "1"
+      WATCHFILES_FORCE_POLLING: "true"
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "pip install -r requirements.txt &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  frontend:
+    image: node:20-slim
+    working_dir: /app/frontend
+    volumes:
+      - ./frontend:/app/frontend
+      - frontend-node-modules:/app/frontend/node_modules
+    environment:
+      VITE_API_BASE_URL: "http://localhost:8000/api"
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    command: >
+      sh -c "npm ci &&
+             npm run dev -- --host 0.0.0.0 --port 5173"
+
+volumes:
+  frontend-node-modules:
+  backend-uploads:
+  backend-index:

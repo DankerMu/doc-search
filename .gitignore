@@ -70,3 +70,6 @@ docs/_build/
 
 # Search index
 search_index/
+
+# Claude local artifacts
+codeagent_wrapper_smoke_test.md

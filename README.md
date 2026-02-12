@@ -25,18 +25,32 @@
 
 ## Quick Start
 
+Backend (Terminal 1):
+
 ```bash
-# Backend
 cd backend
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-uvicorn main:app --reload
+uvicorn app.main:app --reload
+```
 
-# Frontend
+Frontend (Terminal 2):
+
+```bash
 cd frontend
 npm install
 npm run dev
+```
+
+## Docker (Dev)
+
+```bash
+# From repo root
+docker compose up
+
+# API health
+curl http://localhost:8000/api/health
 ```
 
 ## Project Structure
@@ -46,6 +60,7 @@ doc-search/
 ├── backend/          # FastAPI backend
 ├── frontend/         # React frontend
 ├── docs/             # Documentation
+├── .github/          # CI (GitHub Actions)
 └── docker-compose.yml
 ```
 

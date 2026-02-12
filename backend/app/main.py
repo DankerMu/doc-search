@@ -24,10 +24,15 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="Doc Search API", lifespan=lifespan)
 
+allow_credentials = settings.CORS_ALLOW_CREDENTIALS
+if allow_credentials and "*" in settings.CORS_ORIGINS:
+    # Wildcard origins cannot be used with credentials.
+    allow_credentials = False
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

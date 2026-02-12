@@ -19,7 +19,7 @@ function splitMarkedText(input: string): HighlightPart[] {
 
   const parts: HighlightPart[] = [];
   let rest = input;
-  while (true) {
+  for (;;) {
     const start = rest.indexOf('<mark>');
     if (start === -1) {
       if (rest) parts.push({ text: rest, marked: false });
@@ -32,6 +32,7 @@ function splitMarkedText(input: string): HighlightPart[] {
 
     const end = rest.indexOf('</mark>');
     if (end === -1) {
+      // Unbalanced markup from backend; treat remainder as marked text.
       if (rest) parts.push({ text: rest, marked: true });
       break;
     }

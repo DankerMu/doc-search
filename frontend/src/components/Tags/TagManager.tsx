@@ -1,5 +1,5 @@
 import { Button, Card, Form, Input, Modal, Popconfirm, Space, Table, Tag as AntTag, Typography } from 'antd';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { useCreateTag, useDeleteTag, useTags, useUpdateTag } from '../../hooks/useTags';
 import type { Tag, TagCreateInput } from '../../types/tag';
@@ -24,11 +24,14 @@ export default function TagManager() {
     setEditor({ open: true, mode: 'create', initial });
   };
 
-  const openEdit = (tag: Tag) => {
-    const initial: TagCreateInput = { name: tag.name, color: tag.color };
-    form.setFieldsValue(initial);
-    setEditor({ open: true, mode: 'edit', tagId: tag.id, initial });
-  };
+  const openEdit = useCallback(
+    (tag: Tag) => {
+      const initial: TagCreateInput = { name: tag.name, color: tag.color };
+      form.setFieldsValue(initial);
+      setEditor({ open: true, mode: 'edit', tagId: tag.id, initial });
+    },
+    [form],
+  );
 
   const columns = useMemo(
     () => [
@@ -61,7 +64,7 @@ export default function TagManager() {
         )
       }
     ],
-    [deleteTag, form],
+    [deleteTag, openEdit],
   );
 
   return (
